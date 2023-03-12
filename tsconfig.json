@@ -2,7 +2,10 @@
   "compilerOptions": {
     "preserveConstEnums": true,
     "strictNullChecks": true,
-    "sourceMap": true,
+    // ソースマップのjsを出力しない
+    "sourceMap": false,
+    // 自分用のコメントをLambda関数にデプロイされるindex.jsに含めない
+    "removeComments": true,
     "allowJs": true,
     "target": "ES6",
     "outDir": ".build",

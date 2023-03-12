@@ -18,6 +18,11 @@ provider:
         - "lightsail:StopInstance"
       Resource: "*"
 
+package:
+  patterns:
+    - "!**"
+    - "index.js"
+
 functions:
   RunSchedules:
     handler: index.handler

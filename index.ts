@@ -15,7 +15,32 @@ import {
   GetInstancesCommandOutput,
   Instance as LightsailInstance,
 } from "@aws-sdk/client-lightsail";
-import { ApiHoliday, AWSLambdaEvent, EventSchedule, ResultItem } from "./types";
+
+export interface EventSchedule {
+  resourceType: string;
+  resourceId: string;
+  eventType: string;
+  eventHour: number;
+  eventMinute: number;
+  weekdays: Array<number>;
+  holiday?: number;
+}
+export type EventSchedules = Array<EventSchedule>;
+
+export interface AWSLambdaEvent {
+  schedules: EventSchedules;
+}
+
+export interface ApiHoliday {
+  [date: string]: string;
+}
+
+export interface ResultItem {
+  resouceType: string;
+  resourceId: string;
+  eventType: string;
+  details: string;
+}
 
 // UTC←→JST変換用の時間
 const JST_TZ_OFFSET = 9;
