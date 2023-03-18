@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    // Nodeで実行するのでCommonJS(package.jsonでtype: "module"の記述を行い、Lambda関数にアップすることでESM形式での動作も可能と言えば可能。する意味ない気がするのでNodeで実行する以上はCommonJSで良さそう)
+    "module": "CommonJS",
     "preserveConstEnums": true,
     "strictNullChecks": true,
     // ソースマップのjsを出力しない
@@ -7,10 +10,8 @@
     // 自分用のコメントをLambda関数にデプロイされるindex.jsに含めない
     "removeComments": true,
     "allowJs": true,
-    "target": "ES6",
     "outDir": ".build",
     "moduleResolution": "node",
-    "lib": ["es2015"],
     "rootDir": "./"
   }
 }
