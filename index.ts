@@ -1,4 +1,4 @@
-import axios from "/opt/nodejs/node_modules/axios/index.js";
+import axios from "axios";
 import {
   EC2Client,
   DescribeInstancesCommand,
