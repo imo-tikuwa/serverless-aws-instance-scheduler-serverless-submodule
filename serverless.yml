@@ -36,5 +36,4 @@ plugins:
 custom:
   serverless-layers:
     layersDeploymentBucket: ${self:service}-layers-${aws:accountId}
-    dependenciesPath: ../opt/nodejs/package.json
     compatibleRuntimes: ["nodejs18.x"]
