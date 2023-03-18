@@ -24,10 +24,13 @@ functions:
     # 関数名についてサービス名と一致させる
     name: ${self:service}
     description: AWSのリソース(EC2,Lightsail)を指定時間で起動/停止するスケジューラ
-    timeout: 300
     environment:
       TZ: ${env:TZ}
     events: ${file(./config/schedule.yml)}
+    # 以下の設定は適宜修正してください
+    timeout: 300
+    memorySize: 512
+    ephemeralStorageSize: 512
 
 plugins:
   - serverless-layers
