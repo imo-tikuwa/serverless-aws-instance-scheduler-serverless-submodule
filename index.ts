@@ -59,6 +59,46 @@ const lightsail = new LightsailClient({
   region: process.env.AWS_DEFAULT_REGION,
 });
 
+const MESSAGES = {
+  /**
+   * 対象時間外のため何もしませんでした
+   */
+  CANCELLED_TIME_OUT_OF_RANGE: "対象時間外のため何もしませんでした",
+  /**
+   * インスタンスは既に起動しているため何もしませんでした
+   */
+  CANCELLED_INSTANCE_ALREADY_RUNNING: "インスタンスは既に起動しているため何もしませんでした",
+  /**
+   * インスタンスは既に停止しているため何もしませんでした
+   */
+  CANCELLED_INSTANCE_ALREADY_STOPPED: "インスタンスは既に停止しているため何もしませんでした",
+  /**
+   * 本日は${japaneseWeekday.format(currentDate)}のため何もしませんでした
+   */
+  CANCELLED_TODAY_NOT_WORKING_DAY: (currentDate: Date) =>
+    `本日は${japaneseWeekday.format(currentDate)}のため何もしませんでした`,
+  /**
+   * 本日は祝日(${holidayName})のため何もしませんでした
+   */
+  CANCELLED_TODAY_IS_HOLIDAY: (holidayName: string) => `本日は祝日(${holidayName})のため何もしませんでした`,
+  /**
+   * インスタンス起動の指示を行いました
+   */
+  INSTANCE_START_INSTRUCTED: "インスタンス起動の指示を行いました",
+  /**
+   * インスタンス停止の指示を行いました
+   */
+  INSTANCE_STOP_INSTRUCTED: "インスタンス停止の指示を行いました",
+  /**
+   * インスタンスが見つかりませんでした
+   */
+  INSTANCE_NOT_FOUND: "インスタンスが見つかりませんでした",
+  /**
+   * 設定が正しくない可能性があります
+   */
+  SETTING_MAYBE_INCORRECT: "設定が正しくない可能性があります",
+};
+
 /**
  * メインの関数
  * @param event
@@ -98,17 +138,17 @@ export const handler = async (event: AWSLambdaEvent) => {
     eventDate.setHours(schedule.eventHour + JST_TZ_OFFSET, schedule.eventMinute, 0, 0);
     const diffSecond = (currentDate.getTime() - eventDate.getTime()) / 1000;
     if (diffSecond < 0 || 300 < diffSecond) {
-      return createResultItem(schedule, "対象時間外のため何もしませんでした");
+      return createResultItem(schedule, MESSAGES.CANCELLED_TIME_OUT_OF_RANGE);
     }
 
     // 曜日チェック
     if (!schedule.weekdays.includes(currentDate.getDay())) {
-      return createResultItem(schedule, `本日は${japaneseWeekday.format(currentDate)}のため何もしませんでした`);
+      return createResultItem(schedule, MESSAGES.CANCELLED_TODAY_NOT_WORKING_DAY(currentDate));
     }
 
     // 今日が祝日かつ、「祝日のときイベントをキャンセルする」にチェックが入っているときの早期リターン
     if (todayIsHoliday && schedule.holiday === CANCEL_EVENT_ON_PUBLIC_HOLIDAY) {
-      return createResultItem(schedule, `本日は祝日(${holidays[currentDateStr]})のため何もしませんでした`);
+      return createResultItem(schedule, MESSAGES.CANCELLED_TODAY_IS_HOLIDAY(holidays[currentDateStr]));
     }
 
     const resourceEventType = schedule.resourceType + schedule.eventType;
@@ -123,7 +163,7 @@ export const handler = async (event: AWSLambdaEvent) => {
         return stopLightsailInstance(schedule, lightsailResult);
     }
 
-    return createResultItem(schedule, "設定が正しくない可能性があります");
+    return createResultItem(schedule, MESSAGES.SETTING_MAYBE_INCORRECT);
   });
 
   // 結果をログ出力
@@ -176,7 +216,7 @@ const startEc2Instance = (schedule: EventSchedule, ec2Result: DescribeInstancesC
   const targetInstance = searchEc2Instance(schedule.resourceId, ec2Result);
   if (targetInstance) {
     if (targetInstance.State?.Name === "running") {
-      return createResultItem(schedule, `インスタンスは既に起動しているため何もしませんでした`);
+      return createResultItem(schedule, MESSAGES.CANCELLED_INSTANCE_ALREADY_RUNNING);
     }
 
     // EC2の起動
@@ -184,9 +224,9 @@ const startEc2Instance = (schedule: EventSchedule, ec2Result: DescribeInstancesC
       InstanceIds: [schedule.resourceId],
     });
     ec2.send(command);
-    return createResultItem(schedule, `インスタンス起動の指示をしました`);
+    return createResultItem(schedule, MESSAGES.INSTANCE_START_INSTRUCTED);
   }
-  return createResultItem(schedule, `インスタンスが見つかりませんでした`);
+  return createResultItem(schedule, MESSAGES.INSTANCE_NOT_FOUND);
 };
 
 /**
@@ -199,7 +239,7 @@ const stopEc2Instance = (schedule: EventSchedule, ec2Result: DescribeInstancesCo
   const targetInstance = searchEc2Instance(schedule.resourceId, ec2Result);
   if (targetInstance) {
     if (targetInstance.State?.Name === "stopped") {
-      return createResultItem(schedule, `インスタンスは既に停止しているため何もしませんでした`);
+      return createResultItem(schedule, MESSAGES.CANCELLED_INSTANCE_ALREADY_STOPPED);
     }
 
     // EC2の停止
@@ -207,10 +247,10 @@ const stopEc2Instance = (schedule: EventSchedule, ec2Result: DescribeInstancesCo
       InstanceIds: [schedule.resourceId],
     });
     ec2.send(command);
-    return createResultItem(schedule, `インスタンス停止の指示を行いました`);
+    return createResultItem(schedule, MESSAGES.INSTANCE_STOP_INSTRUCTED);
   }
 
-  return createResultItem(schedule, `インスタンスが見つかりませんでした`);
+  return createResultItem(schedule, MESSAGES.INSTANCE_NOT_FOUND);
 };
 
 /**
@@ -223,7 +263,7 @@ const startLightsailInstance = (schedule: EventSchedule, lightsailResult: GetIns
   const targetInstance = searchLightsailInstance(schedule.resourceId, lightsailResult);
   if (targetInstance) {
     if (targetInstance.state?.name === "running") {
-      return createResultItem(schedule, `インスタンスは既に起動しているため何もしませんでした`);
+      return createResultItem(schedule, MESSAGES.CANCELLED_INSTANCE_ALREADY_RUNNING);
     }
 
     // lightsailの起動
@@ -231,10 +271,10 @@ const startLightsailInstance = (schedule: EventSchedule, lightsailResult: GetIns
       instanceName: schedule.resourceId,
     });
     lightsail.send(command);
-    return createResultItem(schedule, `インスタンス起動の指示をしました`);
+    return createResultItem(schedule, MESSAGES.INSTANCE_START_INSTRUCTED);
   }
 
-  return createResultItem(schedule, `インスタンスが見つかりませんでした`);
+  return createResultItem(schedule, MESSAGES.INSTANCE_NOT_FOUND);
 };
 
 /**
@@ -247,7 +287,7 @@ const stopLightsailInstance = (schedule: EventSchedule, lightsailResult: GetInst
   const targetInstance = searchLightsailInstance(schedule.resourceId, lightsailResult);
   if (targetInstance) {
     if (targetInstance.state?.name === "stopped") {
-      return createResultItem(schedule, `インスタンスは既に停止しているため何もしませんでした`);
+      return createResultItem(schedule, MESSAGES.CANCELLED_INSTANCE_ALREADY_STOPPED);
     }
 
     // lightsailの停止
@@ -255,10 +295,10 @@ const stopLightsailInstance = (schedule: EventSchedule, lightsailResult: GetInst
       instanceName: schedule.resourceId,
     });
     lightsail.send(command);
-    return createResultItem(schedule, `インスタンス停止の指示を行いました`);
+    return createResultItem(schedule, MESSAGES.INSTANCE_STOP_INSTRUCTED);
   }
 
-  return createResultItem(schedule, `インスタンスが見つかりませんでした`);
+  return createResultItem(schedule, MESSAGES.INSTANCE_NOT_FOUND);
 };
 
 /**
